@@ -3,7 +3,7 @@
 envprefix="vm"
 
 rg='rg'
-for (( j=1; n <= 2 ; j++ ))
+for (( j=1; j <= 2 ; j++ ))
 do
   std=std$j
   touch /opt/ip$envprefix$std$rg.txt
