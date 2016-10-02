@@ -9,7 +9,7 @@
  ### Get the Deployment template and Parameter file from github#####
  cd /opt/
  wget https://raw.githubusercontent.com/PraveenAnil/praveendockerazure/master/deployazurevm.json
- https://raw.githubusercontent.com/PraveenAnil/praveendockerazure/master/deployparam.json 
+ wget https://raw.githubusercontent.com/PraveenAnil/praveendockerazure/master/deployparam.json 
  touch dep.json
  cd /
  
