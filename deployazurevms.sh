@@ -35,10 +35,10 @@ read password
 ###Fixed Parametere ####
 rg='rg'
 echo $rg
+n=1
 ###Creating resources##
 ##Starting Outer for loop: this will create ResourceGroup, Network, and storage account##
-
-for ((n=1;n<=$numberofstudent;n++))
+for (( n=1; n <= $numberofstudent ; n++ ))
 do
   std=std$n
   jq '.parameters.envnamingprefix.value="'$envprefix'"' /opt/deployparam.json >> /opt/dep$n.json
