@@ -1,0 +1,223 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "envnamingprefix": {
+      "type": "string",
+      "minLength": 1,
+      "metadata": {
+        "description": "Prefix to be used in all naming conventions."
+      }
+    },
+    "stdname": {
+      "type": "string",
+      "minLength": 1,
+      "metadata": {
+        "description": "Total Number of Students."
+      }
+    },
+    "dockerhostperstd": {
+      "type": "int",
+      "metadata": {
+        "description": "Total Number of Students."
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "minLength": 1,
+      "metadata": {
+        "description": "Username for the Virtual Machine."
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Password for the Virtual Machine."
+      }
+    }
+  },
+  "variables": {
+    "imagePublisher": "Canonical",
+    "ubuntuOSVersion": "14.04.2-LTS",
+    "imageOffer": "UbuntuServer",
+    "extensionName": "DockerExtension",
+    "addressPrefix": "10.0.0.0/16",
+    "subnetName": "Subnet",
+    "subnetPrefix": "10.0.0.0/24",
+    "vhdStorageType": "Standard_LRS",
+    "publicIPAddressType": "Dynamic",
+    "vhdStorageContainerName": "vhds",
+    "vmSize": "Standard_D1",
+    "vnetRef": "[resourceId('Microsoft.Network/virtualNetworks',concat('vnet-', parameters('envnamingprefix'),parameters('stdname'))) ]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[concat('stg', parameters('envnamingprefix'),parameters('stdname'))]",
+      "tags": {
+        "displayName": "StorageAccount"
+      },
+      "apiVersion": "2015-06-15",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "accountType": "[variables('vhdStorageType')]"
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[concat('pip', parameters('envnamingprefix'),parameters('stdname'), copyindex())]",
+      "tags": {
+        "displayName": "PublicIPAddress"
+      },
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "publicipLoop",
+        "count": "[parameters('dockerhostperstd')]"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+        "dnsSettings": {
+          "domainNameLabel": "[concat('pipdns', parameters('envnamingprefix'),parameters('stdname'), copyindex())]"
+        }
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[concat('vnet-', parameters('envnamingprefix'),parameters('stdname'))]",
+      "tags": {
+        "displayName": "VirtualNetwork"
+      },
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('addressPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('subnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('subnetPrefix')]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat('nic', parameters('envnamingprefix'),parameters('stdname'), 'vm', copyindex())]",
+      "tags": {
+        "displayName": "NetworkInterface"
+      },
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "nicLoop",
+        "count": "[parameters('dockerhostperstd')]"
+      },
+      "dependsOn": [
+        "[concat('pip', parameters('envnamingprefix'),parameters('stdname'), copyindex())]",
+        "[concat('vnet-', parameters('envnamingprefix'),parameters('stdname'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',concat('pip', parameters('envnamingprefix'), parameters('stdname'), copyindex()))]"
+
+              },
+              "subnet": {
+                "id": "[concat(variables('vnetRef'),'/subnets/',variables('subnetName'))]"
+
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat( parameters('envnamingprefix'),parameters('stdname'),'VM', copyindex())]",
+      "tags": {
+        "displayName": "VirtualMachine"
+      },
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "VMLoop",
+        "count": "[parameters('dockerhostperstd')]"
+      },
+      "dependsOn": [
+        "[concat('stg', parameters('envnamingprefix'),parameters('stdname'))]",
+        "[concat('nic', parameters('envnamingprefix'),parameters('stdname'), 'vm', copyindex()  )]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[concat( parameters('envnamingprefix'),parameters('stdname'),'VM', copyindex())]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('imagePublisher')]",
+            "offer": "[variables('imageOffer')]",
+            "sku": "[variables('ubuntuOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[concat( parameters('envnamingprefix'),parameters('stdname'),'osdiskvm', copyindex())]",
+            "vhd": {
+              "uri": "[concat('http://', concat('stg', parameters('envnamingprefix'),parameters('stdname')), '.blob.core.windows.net/', variables('vhdStorageContainerName'), '/', concat(parameters('envnamingprefix'),parameters('stdname'),'osdiskvm', copyindex()), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat('nic', parameters('envnamingprefix'),parameters('stdname'), 'vm', copyindex()))]"
+            }
+          ]
+        }
+
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(concat( parameters('envnamingprefix'),parameters('stdname'),'VM', copyindex()), '/', variables('extensionName'))]",
+      "tags": {
+        "displayName": "DockerExtension"
+      },
+      "apiVersion": "2015-06-15",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "VMexLoop",
+        "count": "[parameters('dockerhostperstd')]"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/',concat( parameters('envnamingprefix'),parameters('stdname'),'VM', copyindex()))]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "DockerExtension",
+        "typeHandlerVersion": "1.0",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "compose": {
+          },
+          "installonly": "true"
+        }
+      }
+    }
+  ]
+}
