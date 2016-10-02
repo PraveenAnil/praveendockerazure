@@ -45,7 +45,7 @@ do
   cat /opt/deployparam.json >> /opt/dep$n.json
   echo $(jq '.parameters.envnamingprefix.value="'$envprefix'"' /opt/dep$n.json) > /opt/dep$n.json
   echo $(jq '.parameters.stdname.value="'$std'"' /opt/dep$n.json) > /opt/dep$n.json
-  echo $(jq '.parameters.dockerhostperstd.value="'$dockerhostperstudent'"' /opt/dep$n.json) > /opt/dep$n.json
+  echo $(jq '.parameters.dockerhostperstd.value='$dockerhostperstudent'' /opt/dep$n.json) > /opt/dep$n.json
   echo $(jq '.parameters.adminUsername.value="'$adminname'"' /opt/dep$n.json) > /opt/dep$n.json
   echo $(jq '.parameters.adminPassword.value="'$password'"' /opt/dep$n.json) > /opt/dep$n.json
  ###Creating Resource Group for Each Student###
