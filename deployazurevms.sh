@@ -1,3 +1,4 @@
+#!/bin/bash
 ###This will deploy the required infrastructure on Azure for this workshop##########
 
 ### Install JQ - a command line JSON processor to edit the parameter file####
