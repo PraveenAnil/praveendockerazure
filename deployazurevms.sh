@@ -55,4 +55,11 @@ done
 ### Outer Loop Done ###
 
 ####Finished Deployment#######
-echo Deployment finished successfully, Check Current directory for text file containing IP details for each student. Thanks
+for (( j=1; j <= $numberofstudent ; j++ ))
+do
+  std=std$j
+  touch /opt/ip$envprefix$std$rg.txt
+  echo $(az network public-ip list -g $envprefix$std$rg |grep "ipAddress\|fqdn") > /opt/ip$envprefix$std$rg.txt
+ 
+done
+echo Deployment finished successfully, Check /opt/ directory for text file containing IP details for each student. Thanks
